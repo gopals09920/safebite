@@ -1,0 +1,1805 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SafeBite — Dietary Interaction & Symptom Tracker</title>
+  <style>
+    :root {
+      --bg: #f4f7f6;
+      --card: #ffffff;
+      --text: #13201c;
+      --muted: #5b6b64;
+      --border: #dde6e2;
+      --primary: #0f766e;
+      --primary-hover: #115e59;
+      --soft-teal: #eef6f5;
+      --low-bg: #ecfdf5;
+      --low-text: #065f46;
+      --mod-bg: #fffbeb;
+      --mod-text: #92400e;
+      --high-bg: #fef2f2;
+      --high-text: #991b1b;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      padding: 28px 16px 64px;
+    }
+
+    .container {
+      max-width: 1020px;
+      margin: 0 auto;
+    }
+
+    header {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px 24px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 16px rgba(15, 23, 42, 0.03);
+    }
+
+    .brand-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .brand-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .logo-mark {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      background: var(--primary);
+      color: #fff;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 1rem;
+    }
+
+    h1 {
+      font-size: 1.6rem;
+      letter-spacing: -0.02em;
+    }
+
+    .section-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #eef2f0;
+    }
+
+    h2 {
+      font-size: 1.15rem;
+      font-weight: 700;
+    }
+
+    h3 {
+      font-size: 0.98rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .section-badge {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--primary);
+      background: var(--soft-teal);
+      padding: 4px 10px;
+      border-radius: 999px;
+    }
+
+    .status-pill {
+      font-size: 0.8rem;
+      padding: 5px 11px;
+      border-radius: 999px;
+      background: #e2e8f0;
+      color: #334155;
+      font-weight: 600;
+    }
+
+    .status-pill.online {
+      background: var(--low-bg);
+      color: var(--low-text);
+    }
+
+    .subtitle {
+      color: var(--muted);
+      margin-top: 8px;
+      font-size: 0.94rem;
+      line-height: 1.45;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 22px 24px;
+      box-shadow: 0 4px 16px rgba(15, 23, 42, 0.03);
+      margin-bottom: 20px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+    }
+
+    .grid-4 {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    @media (max-width: 820px) {
+      .grid-4 {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 760px) {
+      .grid-3 {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: var(--text);
+    }
+
+    select, input[type="text"], input[type="time"], input[type="number"], input[type="date"], input[type="search"] {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      font-size: 0.93rem;
+      background: #fff;
+      color: var(--text);
+    }
+
+    select:focus, input:focus {
+      outline: 2px solid rgba(15, 118, 110, 0.18);
+      border-color: var(--primary);
+    }
+
+    .combo-wrap {
+      position: relative;
+    }
+
+    .combo-input-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .combo-menu {
+      display: none;
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0;
+      right: 0;
+      max-height: 240px;
+      overflow-y: auto;
+      background: #fff;
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+      box-shadow: 0 10px 25px rgba(15, 23, 42, 0.12);
+      z-index: 40;
+    }
+
+    .combo-menu.open {
+      display: block;
+    }
+
+    .combo-option {
+      padding: 9px 12px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      border-bottom: 1px solid #f1f5f9;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .combo-option:last-child {
+      border-bottom: none;
+    }
+
+    .combo-option:hover,
+    .combo-option.active {
+      background: var(--soft-teal);
+      color: var(--primary);
+      font-weight: 600;
+    }
+
+    .combo-tag {
+      font-size: 0.75rem;
+      color: var(--muted);
+      background: #f1f5f9;
+      padding: 2px 7px;
+      border-radius: 999px;
+      white-space: nowrap;
+    }
+
+    .combo-empty {
+      padding: 12px;
+      font-size: 0.88rem;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    .chips-wrap {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--soft-teal);
+      color: #134e4a;
+      border: 1px solid #cce3dd;
+      padding: 5px 10px;
+      border-radius: 999px;
+      font-size: 0.84rem;
+      font-weight: 600;
+    }
+
+    .chip button {
+      border: none;
+      background: transparent;
+      color: var(--primary);
+      font-weight: 700;
+      cursor: pointer;
+      padding: 0 2px;
+    }
+
+    .quick-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .quick-tag-btn {
+      border: 1px solid var(--border);
+      background: #f9fbfa;
+      color: var(--muted);
+      padding: 4px 9px;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      cursor: pointer;
+    }
+
+    .quick-tag-btn:hover,
+    .quick-tag-btn.active-filter {
+      border-color: var(--primary);
+      color: var(--primary);
+      background: var(--soft-teal);
+      font-weight: 600;
+    }
+
+    .actions {
+      margin-top: 18px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    button.primary-btn {
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      padding: 10px 18px;
+      border-radius: 9px;
+      font-size: 0.93rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    button.primary-btn:hover {
+      background: var(--primary-hover);
+    }
+
+    button.secondary-btn {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 9px 14px;
+      border-radius: 9px;
+      font-size: 0.88rem;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    button.secondary-btn:hover {
+      background: #f8fafc;
+    }
+
+    button.danger-btn {
+      background: transparent;
+      color: var(--high-text);
+      border: 1px solid #fecaca;
+      padding: 5px 9px;
+      border-radius: 7px;
+      font-size: 0.78rem;
+      cursor: pointer;
+    }
+
+    button.danger-btn:hover {
+      background: var(--high-bg);
+    }
+
+    .error-msg {
+      color: var(--high-text);
+      background: var(--high-bg);
+      border: 1px solid #fecaca;
+      padding: 12px 14px;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      margin-top: 14px;
+      display: none;
+      white-space: pre-wrap;
+    }
+
+    .summary-banner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      padding-bottom: 14px;
+      margin-bottom: 14px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .filter-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+
+    .risk-badge {
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-weight: 700;
+      font-size: 0.82rem;
+      text-transform: uppercase;
+    }
+
+    .risk-low { background: var(--low-bg); color: var(--low-text); }
+    .risk-moderate { background: var(--mod-bg); color: var(--mod-text); }
+    .risk-high { background: var(--high-bg); color: var(--high-text); }
+
+    .item-result-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .item-result-row {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 14px;
+      background: #fafcfb;
+    }
+
+    .item-result-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 6px;
+    }
+
+    .meta-muted {
+      font-size: 0.84rem;
+      color: var(--muted);
+    }
+
+    .disclaimer {
+      font-size: 0.8rem;
+      color: var(--muted);
+      background: #f8fafc;
+      border-left: 3px solid #94a3b8;
+      padding: 10px 12px;
+      border-radius: 6px;
+      line-height: 1.45;
+      margin-top: 10px;
+    }
+
+    .trend-box {
+      background: #f8fbfa;
+      border: 1px solid #d5e5e0;
+      border-radius: 12px;
+      padding: 14px 16px;
+      margin-top: 18px;
+    }
+
+    .trigger-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .trigger-pill {
+      background: #fff;
+      border: 1px solid #cce3dd;
+      color: #134e4a;
+      padding: 5px 11px;
+      border-radius: 999px;
+      font-size: 0.81rem;
+      font-weight: 600;
+    }
+
+    .trigger-pill.high-trigger {
+      background: var(--high-bg);
+      border-color: #fecaca;
+      color: var(--high-text);
+    }
+
+    .toolbar-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 16px;
+      padding-top: 14px;
+      border-top: 1px solid #eef2f0;
+    }
+
+    .stat-card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 12px;
+    }
+
+    .stat-label {
+      font-size: 0.77rem;
+      color: var(--muted);
+      margin-bottom: 3px;
+    }
+
+    .stat-val {
+      font-size: 0.98rem;
+      font-weight: 700;
+    }
+
+    .day-block {
+      margin-top: 14px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .day-header {
+      background: #f2f6f4;
+      padding: 9px 14px;
+      font-weight: 700;
+      font-size: 0.88rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .table-wrap {
+      width: 100%;
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.87rem;
+    }
+
+    th, td {
+      padding: 9px 12px;
+      text-align: left;
+      border-bottom: 1px solid #eef2f0;
+      vertical-align: top;
+    }
+
+    th {
+      background: #fafcfb;
+      color: var(--muted);
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    .sev-pill {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 0.77rem;
+      font-weight: 600;
+    }
+
+    .sev-none { background: var(--low-bg); color: var(--low-text); }
+    .sev-mild { background: var(--mod-bg); color: var(--mod-text); }
+    .sev-mod { background: #ffedd5; color: #9a3412; }
+    .sev-sev { background: var(--high-bg); color: var(--high-text); }
+
+    .print-report-title {
+      display: none;
+    }
+
+    footer {
+      margin-top: 24px;
+      padding: 16px 20px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      color: var(--muted);
+      font-size: 0.82rem;
+      line-height: 1.5;
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    @media print {
+      body {
+        background: #fff;
+        padding: 0;
+      }
+
+      header,
+      #resultCard,
+      .actions,
+      .toolbar-row,
+      .del-log-btn,
+      .quick-tags,
+      #addItemBtn,
+      #checkBtn,
+      #resetBtn,
+      .tracker-form-grid,
+      .tracker-screen-head {
+        display: none !important;
+      }
+
+      .container > section.card:first-of-type {
+        display: none !important;
+      }
+
+      .print-report-title {
+        display: block;
+        margin-bottom: 12px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid #cbd5e1;
+      }
+
+      .print-report-title h2 {
+        font-size: 1.25rem;
+      }
+
+      .card,
+      footer {
+        box-shadow: none;
+        border: 1px solid #e2e8f0;
+      }
+
+      th:last-child,
+      td:last-child {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+    <!-- SafeBite Auth Bar -->
+<div id="authSection" style="max-width: 1100px; margin: 14px auto; padding: 14px 18px; border: 1px solid #cbd5e1; border-radius: 10px; background: #ffffff; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px;">
+  <div id="authLoggedOutBox" style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px; width: 100%; justify-content: space-between;">
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <button type="button" id="authTabLogin" style="padding: 6px 12px; border-radius: 6px; border: 1px solid #0f172a; background: #0f172a; color: #ffffff; cursor: pointer;">Login</button>
+      <button type="button" id="authTabSignup" style="padding: 6px 12px; border-radius: 6px; border: 1px solid #cbd5e1; background: #f8fafc; color: #0f172a; cursor: pointer;">Signup</button>
+      <span id="authStatusText" style="font-size: 13px; color: #475569;">Please login or signup to sync your personal diary.</span>
+    </div>
+
+    <form id="authForm" style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px;">
+      <input type="text" id="authFullName" placeholder="Full Name" style="display: none; padding: 7px 10px; border: 1px solid #cbd5e1; border-radius: 6px;" />
+      <input type="email" id="authEmail" placeholder="Email" required style="padding: 7px 10px; border: 1px solid #cbd5e1; border-radius: 6px;" />
+      <input type="password" id="authPassword" placeholder="Password" required style="padding: 7px 10px; border: 1px solid #cbd5e1; border-radius: 6px;" />
+      <button type="submit" id="authSubmitBtn" style="padding: 7px 14px; border-radius: 6px; border: none; background: #0284c7; color: #ffffff; cursor: pointer; font-weight: 600;">Login</button>
+    </form>
+  </div>
+
+  <div id="authLoggedInBox" style="display: none; align-items: center; justify-content: space-between; width: 100%; gap: 10px;">
+    <span id="authUserLabel" style="font-size: 14px; font-weight: 600; color: #0f172a;">Logged in</span>
+    <button type="button" id="authLogoutBtn" style="padding: 7px 14px; border-radius: 6px; border: 1px solid #dc2626; background: #fff1f2; color: #dc2626; cursor: pointer; font-weight: 600;">Logout</button>
+  </div>
+</div>
+  <div class="container">
+    <header>
+      <div class="brand-row">
+        <div class="brand-left">
+          <span class="logo-mark">SB</span>
+          <h1>SafeBite</h1>
+        </div>
+        <span id="apiStatus" class="status-pill">Checking API...</span>
+      </div>
+      <p class="subtitle">
+        Verify food, beverage, and supplement interactions with health conditions, plan safe timing gaps, and spot daily symptom trends.
+      </p>
+    </header>
+
+    <section class="card">
+      <div class="section-head">
+        <h2>Interaction &amp; Timing Check</h2>
+        <span class="section-badge">Multi-Item &amp; Gap Calculator</span>
+      </div>
+
+      <div class="grid-3">
+        <div class="combo-wrap" id="diseaseCombo">
+          <label for="diseaseInput">Condition</label>
+          <div class="combo-input-row">
+            <input
+              type="text"
+              id="diseaseInput"
+              placeholder="Click or type condition..."
+              autocomplete="off"
+            />
+          </div>
+          <div id="diseaseMenu" class="combo-menu" role="listbox"></div>
+        </div>
+
+        <div class="combo-wrap" id="itemCombo">
+          <label for="itemInput">Food / Beverage / Supplement</label>
+          <div class="combo-input-row">
+            <input
+              type="text"
+              id="itemInput"
+              placeholder="Click or type EN / HI item..."
+              autocomplete="off"
+            />
+            <button id="addItemBtn" class="secondary-btn" type="button">+ Add</button>
+          </div>
+          <div id="itemMenu" class="combo-menu" role="listbox"></div>
+        </div>
+
+        <div>
+          <label for="intakeTime">Intake Time (Optional)</label>
+          <input type="time" id="intakeTime" />
+          <p class="meta-muted" style="margin-top: 8px;">
+            Add a clock time only if you want next safe time calculated.
+          </p>
+        </div>
+      </div>
+
+      <div id="selectedChips" class="chips-wrap"></div>
+
+      <div class="actions">
+        <button id="checkBtn" class="primary-btn" type="button">Check Interaction</button>
+        <button id="resetBtn" class="secondary-btn" type="button">Clear</button>
+      </div>
+
+      <div id="errorBox" class="error-msg"></div>
+    </section>
+
+    <section id="resultCard" class="card" style="display: none;">
+      <div class="summary-banner">
+        <div>
+          <div id="summaryTitle" style="font-size: 1.15rem; font-weight: 700;"></div>
+          <div id="summaryClock" class="meta-muted" style="margin-top: 3px;"></div>
+        </div>
+        <span id="highestRiskBadge" class="risk-badge"></span>
+      </div>
+
+      <div class="filter-bar">
+        <span class="meta-muted">Filter results by risk:</span>
+        <div class="quick-tags" style="margin-top: 0;">
+          <button type="button" class="quick-tag-btn risk-filter-btn active-filter" data-risk="all">All</button>
+          <button type="button" class="quick-tag-btn risk-filter-btn" data-risk="high">High</button>
+          <button type="button" class="quick-tag-btn risk-filter-btn" data-risk="moderate">Moderate</button>
+          <button type="button" class="quick-tag-btn risk-filter-btn" data-risk="low">Low</button>
+        </div>
+      </div>
+
+      <div id="itemResultsList" class="item-result-list"></div>
+      <div id="disclaimerBox" class="disclaimer"></div>
+    </section>
+
+    <section class="card">
+      <div class="section-head tracker-screen-head">
+        <h2>Food &amp; Symptom Tracker</h2>
+        <span class="section-badge">Automatic Trends &amp; Daily Tables</span>
+      </div>
+
+      <div class="print-report-title">
+        <h2>SafeBite — Food &amp; Symptom Diary Report</h2>
+        <p id="printMetaLine" class="meta-muted">Generated for diet &amp; symptom tracking review</p>
+      </div>
+
+      <div class="grid-3 tracker-form-grid">
+        <div>
+          <label for="diaryMeal">Food / Beverage / Supplement</label>
+          <input type="text" id="diaryMeal" placeholder="e.g., Masala Chai, Almonds, Iron tablet" />
+        </div>
+        <div>
+          <label for="diaryTime">Time (Optional)</label>
+          <input type="time" id="diaryTime" />
+        </div>
+        <div>
+          <label for="diaryGap">Gap Used (minutes, Optional)</label>
+          <input type="number" id="diaryGap" placeholder="e.g., 30" min="0" max="1440" />
+        </div>
+      </div>
+
+      <div class="grid-3 tracker-form-grid" style="margin-top: 12px;">
+        <div>
+          <label for="diarySymptom">Symptom (Optional)</label>
+          <input type="text" id="diarySymptom" placeholder="Type or pick quick symptom..." />
+          <div class="quick-tags">
+            <button type="button" class="quick-tag-btn sym-preset" data-sym="Acidity">Acidity</button>
+            <button type="button" class="quick-tag-btn sym-preset" data-sym="Bloating">Bloating</button>
+            <button type="button" class="quick-tag-btn sym-preset" data-sym="Gas">Gas</button>
+            <button type="button" class="quick-tag-btn sym-preset" data-sym="Headache">Headache</button>
+          </div>
+        </div>
+        <div>
+          <label for="diarySeverity">Severity</label>
+          <select id="diarySeverity">
+            <option value="None">None</option>
+            <option value="Mild">Mild</option>
+            <option value="Moderate">Moderate</option>
+            <option value="Severe">Severe</option>
+          </select>
+        </div>
+        <div>
+          <label for="diaryMealSlot">Meal Slot / Context (Optional)</label>
+          <input type="text" id="diaryMealSlot" placeholder="e.g., Breakfast, Empty stomach, Post-meal" />
+        </div>
+      </div>
+
+      <div class="actions">
+        <button id="saveDiaryBtn" class="primary-btn" type="button">Log Entry</button>
+        <button id="refreshDiaryBtn" class="secondary-btn" type="button">Sync Trends &amp; Logs</button>
+      </div>
+
+      <div id="diaryErrorBox" class="error-msg"></div>
+
+      <div class="trend-box">
+        <h3>Detected Patterns &amp; Trends</h3>
+        <div id="trendStats" class="grid-4"></div>
+        <div id="triggerPills" class="trigger-pills"></div>
+        <p id="trendInsight" class="meta-muted" style="margin-top: 10px;"></p>
+      </div>
+
+      <div class="toolbar-row">
+        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+          <label for="filterDate" style="margin: 0;">Date:</label>
+          <input type="date" id="filterDate" style="width: auto; padding: 7px 10px;" />
+          <input type="search" id="searchDiary" placeholder="Search food, symptom, note..." style="width: 210px; padding: 7px 10px;" />
+          <button id="clearFiltersBtn" class="secondary-btn" type="button">Reset Filters</button>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+          <button id="exportCsvBtn" class="secondary-btn" type="button">Export CSV</button>
+          <button id="printReportBtn" class="secondary-btn" type="button">Print View</button>
+        </div>
+      </div>
+
+      <div id="diaryTablesContainer"></div>
+    </section>
+
+    <footer>
+      <span><strong>SafeBite</strong> — Dietary interaction &amp; symptom logging utility for personal tracking and discussion with a qualified clinician.</span>
+      <span>Data syncs with your configured SafeBite API.</span>
+    </footer>
+  </div>
+
+  <script>
+    (() => {
+  const authTabLogin = document.getElementById("authTabLogin");
+  const authTabSignup = document.getElementById("authTabSignup");
+  const authForm = document.getElementById("authForm");
+  const authFullName = document.getElementById("authFullName");
+  const authEmail = document.getElementById("authEmail");
+  const authPassword = document.getElementById("authPassword");
+  const authSubmitBtn = document.getElementById("authSubmitBtn");
+  const authStatusText = document.getElementById("authStatusText");
+  const authLoggedOutBox = document.getElementById("authLoggedOutBox");
+  const authLoggedInBox = document.getElementById("authLoggedInBox");
+  const authUserLabel = document.getElementById("authUserLabel");
+  const authLogoutBtn = document.getElementById("authLogoutBtn");
+
+  if (!authForm) return;
+
+  let authMode = "login"; // "login" | "signup"
+
+  function setAuthMode(mode) {
+    authMode = mode;
+    const isSignup = mode === "signup";
+    authFullName.style.display = isSignup ? "inline-block" : "none";
+    authFullName.required = isSignup;
+    authSubmitBtn.textContent = isSignup ? "Create Account" : "Login";
+
+    authTabLogin.style.background = isSignup ? "#f8fafc" : "#0f172a";
+    authTabLogin.style.color = isSignup ? "#0f172a" : "#ffffff";
+    authTabLogin.style.borderColor = isSignup ? "#cbd5e1" : "#0f172a";
+
+    authTabSignup.style.background = isSignup ? "#0f172a" : "#f8fafc";
+    authTabSignup.style.color = isSignup ? "#ffffff" : "#0f172a";
+    authTabSignup.style.borderColor = isSignup ? "#0f172a" : "#cbd5e1";
+
+    authStatusText.textContent = isSignup
+      ? "Create a new account to keep your logs private."
+      : "Login with your email and password.";
+  }
+
+  function syncAuthUI() {
+    const token = localStorage.getItem("safebite_token");
+    const savedEmail = localStorage.getItem("safebite_user_email") || "Account";
+
+    if (token) {
+      authLoggedOutBox.style.display = "none";
+      authLoggedInBox.style.display = "flex";
+      authUserLabel.textContent = `Signed in as ${savedEmail}`;
+    } else {
+      authLoggedOutBox.style.display = "flex";
+      authLoggedInBox.style.display = "none";
+    }
+  }
+
+  authTabLogin.addEventListener("click", () => setAuthMode("login"));
+  authTabSignup.addEventListener("click", () => setAuthMode("signup"));
+
+  authForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const email = authEmail.value.trim();
+    const password = authPassword.value;
+    const fullName = authFullName.value.trim();
+
+    if (!email || !password) return;
+
+    const endpoint = authMode === "signup" ? "/auth/signup" : "/auth/login";
+    const payload =
+      authMode === "signup"
+        ? { full_name: fullName || email.split("@")[0], email, password }
+        : { email, password };
+
+    const baseUrl = typeof API_BASE !== "undefined" ? API_BASE : "";
+    authSubmitBtn.disabled = true;
+
+    try {
+      const res = await fetch(`${baseUrl}${endpoint}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const rawText = await res.text();
+      let data = {};
+      try {
+        data = rawText ? JSON.parse(rawText) : {};
+      } catch {
+        data = {};
+      }
+
+      if (!res.ok) {
+        const msg =
+          typeof data.detail === "string"
+            ? data.detail
+            : rawText || `Authentication failed (${res.status})`;
+        authStatusText.textContent = msg;
+        return;
+      }
+
+      const token = data.access_token || data.token;
+      if (!token) {
+        authStatusText.textContent = "Login succeeded, but token was missing in response.";
+        return;
+      }
+
+      localStorage.setItem("safebite_token", token);
+      localStorage.setItem("safebite_user_email", (data.user && data.user.email) || email);
+      authPassword.value = "";
+      syncAuthUI();
+
+      if (typeof loadDiary === "function") {
+        await loadDiary();
+      }
+    } catch {
+      authStatusText.textContent = "Network error while connecting to auth server.";
+    } finally {
+      authSubmitBtn.disabled = false;
+    }
+  });
+
+  authLogoutBtn.addEventListener("click", async () => {
+    localStorage.removeItem("safebite_token");
+    localStorage.removeItem("safebite_user_email");
+    syncAuthUI();
+    if (typeof loadDiary === "function") {
+      await loadDiary();
+    }
+  });
+
+  setAuthMode("login");
+  syncAuthUI();
+})();
+    const API_BASE = window.location.protocol === "http:" || window.location.protocol === "https:"
+      ? window.location.origin
+      : "http://127.0.0.1:8000";
+
+    const apiStatus = document.getElementById("apiStatus");
+    const diseaseInput = document.getElementById("diseaseInput");
+    const diseaseMenu = document.getElementById("diseaseMenu");
+    const itemInput = document.getElementById("itemInput");
+    const itemMenu = document.getElementById("itemMenu");
+    const addItemBtn = document.getElementById("addItemBtn");
+    const intakeTimeInput = document.getElementById("intakeTime");
+    const selectedChips = document.getElementById("selectedChips");
+    const checkBtn = document.getElementById("checkBtn");
+    const resetBtn = document.getElementById("resetBtn");
+    const errorBox = document.getElementById("errorBox");
+    const diaryErrorBox = document.getElementById("diaryErrorBox");
+
+    const resultCard = document.getElementById("resultCard");
+    const summaryTitle = document.getElementById("summaryTitle");
+    const summaryClock = document.getElementById("summaryClock");
+    const highestRiskBadge = document.getElementById("highestRiskBadge");
+    const itemResultsList = document.getElementById("itemResultsList");
+    const disclaimerBox = document.getElementById("disclaimerBox");
+
+    const diaryMeal = document.getElementById("diaryMeal");
+    const diaryTime = document.getElementById("diaryTime");
+    const diaryGap = document.getElementById("diaryGap");
+    const diarySymptom = document.getElementById("diarySymptom");
+    const diarySeverity = document.getElementById("diarySeverity");
+    const diaryMealSlot = document.getElementById("diaryMealSlot");
+    const saveDiaryBtn = document.getElementById("saveDiaryBtn");
+    const refreshDiaryBtn = document.getElementById("refreshDiaryBtn");
+    const trendStats = document.getElementById("trendStats");
+    const triggerPills = document.getElementById("triggerPills");
+    const trendInsight = document.getElementById("trendInsight");
+    const filterDateInput = document.getElementById("filterDate");
+    const searchDiaryInput = document.getElementById("searchDiary");
+    const clearFiltersBtn = document.getElementById("clearFiltersBtn");
+    const exportCsvBtn = document.getElementById("exportCsvBtn");
+    const printReportBtn = document.getElementById("printReportBtn");
+    const printMetaLine = document.getElementById("printMetaLine");
+    const diaryTablesContainer = document.getElementById("diaryTablesContainer");
+
+    let allDiseases = [];
+    let allItems = [];
+    let selectedDisease = null;
+    let activeItem = null;
+    let selectedItemIds = [];
+    let lastCheckData = null;
+    let activeRiskFilter = "all";
+    let allDiaryLogs = [];
+
+    function showError(msg) {
+      errorBox.textContent = msg;
+      errorBox.style.display = "block";
+    }
+
+    function hideError() {
+      errorBox.textContent = "";
+      errorBox.style.display = "none";
+    }
+
+    function showDiaryError(msg) {
+      diaryErrorBox.textContent = msg;
+      diaryErrorBox.style.display = "block";
+    }
+
+    function hideDiaryError() {
+      diaryErrorBox.textContent = "";
+      diaryErrorBox.style.display = "none";
+    }
+
+    function addMinutesToTime(hhmm, minutesToAdd) {
+      if (!hhmm || !hhmm.includes(":")) return null;
+      const [h, m] = hhmm.split(":").map(Number);
+      if (Number.isNaN(h) || Number.isNaN(m)) return null;
+      const total = (h * 60 + m + Number(minutesToAdd || 0)) % (24 * 60);
+      const nextH = String(Math.floor(total / 60)).padStart(2, "0");
+      const nextM = String(total % 60).padStart(2, "0");
+      return `${nextH}:${nextM}`;
+    }
+
+    function normalizeRiskBucket(level) {
+      const s = String(level || "").toLowerCase();
+      if (s.includes("high") || s.includes("avoid") || s.includes("severe")) return "high";
+      if (s.includes("low") || s.includes("safe")) return "low";
+      return "moderate";
+    }
+
+    function riskClass(level) {
+      const b = normalizeRiskBucket(level);
+      if (b === "high") return "risk-high";
+      if (b === "low") return "risk-low";
+      return "risk-moderate";
+    }
+
+    function severityPillClass(sev) {
+      const s = String(sev || "None").toLowerCase();
+      if (s === "severe") return "sev-pill sev-sev";
+      if (s === "moderate") return "sev-pill sev-mod";
+      if (s === "mild") return "sev-pill sev-mild";
+      return "sev-pill sev-none";
+    }
+
+    function formatDiseaseLabel(d) {
+      return d.category ? `${d.disease_name} (${d.category})` : d.disease_name;
+    }
+
+    function formatItemLabel(it) {
+      return it.name_hi ? `${it.name_en} / ${it.name_hi}` : it.name_en;
+    }
+
+    function getMatchingDiseases(query = "") {
+      const q = query.trim().toLowerCase();
+      return q
+        ? allDiseases.filter(
+            (d) =>
+              (d.disease_name || "").toLowerCase().includes(q) ||
+              (d.category || "").toLowerCase().includes(q)
+          )
+        : allDiseases;
+    }
+
+    function getMatchingItems(query = "") {
+      const q = query.trim().toLowerCase();
+      return q
+        ? allItems.filter(
+            (it) =>
+              (it.name_en || "").toLowerCase().includes(q) ||
+              (it.name_hi || "").toLowerCase().includes(q) ||
+              (it.category || "").toLowerCase().includes(q)
+          )
+        : allItems;
+    }
+
+    function renderDiseaseMenu(query = "") {
+      const matches = getMatchingDiseases(query);
+      diseaseMenu.innerHTML = "";
+      if (matches.length === 0) {
+        diseaseMenu.innerHTML = `<div class="combo-empty">No matching condition</div>`;
+        return;
+      }
+
+      matches.forEach((d) => {
+        const div = document.createElement("div");
+        div.className = "combo-option" + (selectedDisease && selectedDisease.disease_id === d.disease_id ? " active" : "");
+        div.innerHTML = `
+          <span>${d.disease_name}</span>
+          ${d.category ? `<span class="combo-tag">${d.category}</span>` : ""}
+        `;
+        div.addEventListener("mousedown", (e) => {
+          e.preventDefault();
+          selectedDisease = d;
+          diseaseInput.value = formatDiseaseLabel(d);
+          diseaseMenu.classList.remove("open");
+        });
+        diseaseMenu.appendChild(div);
+      });
+    }
+
+    function renderItemMenu(query = "") {
+      const matches = getMatchingItems(query);
+      itemMenu.innerHTML = "";
+      if (matches.length === 0) {
+        itemMenu.innerHTML = `<div class="combo-empty">No matching item</div>`;
+        return;
+      }
+
+      matches.forEach((it) => {
+        const div = document.createElement("div");
+        div.className = "combo-option" + (activeItem && activeItem.item_id === it.item_id ? " active" : "");
+        div.innerHTML = `
+          <span>${formatItemLabel(it)}</span>
+          ${it.category ? `<span class="combo-tag">${it.category}</span>` : ""}
+        `;
+        div.addEventListener("mousedown", (e) => {
+          e.preventDefault();
+          activeItem = it;
+          itemInput.value = formatItemLabel(it);
+          itemMenu.classList.remove("open");
+        });
+        itemMenu.appendChild(div);
+      });
+    }
+
+    function addCurrentOrFirstItem() {
+      let chosen = activeItem;
+      if (!chosen) {
+        const matches = getMatchingItems(itemInput.value);
+        if (matches.length > 0) chosen = matches[0];
+      }
+      if (!chosen) {
+        showError("Pick or type a matching item first.");
+        return;
+      }
+      hideError();
+      const val = Number(chosen.item_id);
+      if (!selectedItemIds.includes(val)) {
+        selectedItemIds.push(val);
+        renderChips();
+      }
+      itemInput.value = "";
+      activeItem = null;
+      itemMenu.classList.remove("open");
+    }
+
+    function renderChips() {
+      selectedChips.innerHTML = "";
+      if (selectedItemIds.length === 0) {
+        selectedChips.innerHTML = `<span class="meta-muted">Choose an item to check directly, or click "+ Add" to check multiple items together.</span>`;
+        return;
+      }
+      selectedItemIds.forEach((id) => {
+        const found = allItems.find((i) => Number(i.item_id) === Number(id));
+        const label = found ? formatItemLabel(found) : `Item #${id}`;
+        const chip = document.createElement("span");
+        chip.className = "chip";
+        chip.innerHTML = `${label} <button type="button" title="Remove">×</button>`;
+        chip.querySelector("button").addEventListener("click", () => {
+          selectedItemIds = selectedItemIds.filter((x) => Number(x) !== Number(id));
+          renderChips();
+        });
+        selectedChips.appendChild(chip);
+      });
+    }
+
+    function extractDayKey(createdAt) {
+      if (!createdAt) return "Today";
+      return String(createdAt).slice(0, 10);
+    }
+
+    function normalizeLogsResponse(data) {
+      if (Array.isArray(data)) return data;
+      if (data && Array.isArray(data.logs)) return data.logs;
+      if (data && Array.isArray(data.entries)) return data.entries;
+      if (data && Array.isArray(data.items)) return data.items;
+      return [];
+    }
+
+    function prefillTrackerFromResult(itemName, gapMinutes, conditionName) {
+      diaryMeal.value = itemName || "";
+      if (Number(gapMinutes) > 0) {
+        diaryGap.value = String(Number(gapMinutes));
+      }
+      if (intakeTimeInput.value && !diaryTime.value) {
+        diaryTime.value = intakeTimeInput.value;
+      }
+      if (conditionName && !diaryMealSlot.value.trim()) {
+        diaryMealSlot.value = conditionName;
+      }
+      diaryMeal.scrollIntoView({ behavior: "smooth", block: "center" });
+      diaryMeal.focus();
+    }
+
+    function renderFilteredResultRows() {
+      if (!lastCheckData) return;
+      const baseTime = intakeTimeInput.value || "";
+      const rows = (lastCheckData.results || []).filter((r) => {
+        if (activeRiskFilter === "all") return true;
+        return normalizeRiskBucket(r.risk_level) === activeRiskFilter;
+      });
+
+      itemResultsList.innerHTML = "";
+      if (rows.length === 0) {
+        itemResultsList.innerHTML = `<div class="combo-empty">No items match "${activeRiskFilter}" risk filter.</div>`;
+        return;
+      }
+
+      rows.forEach((r) => {
+        const gap = Number(r.gap_minutes || 0);
+        const safeAt = baseTime ? addMinutesToTime(baseTime, gap) : null;
+        const timingLine = safeAt
+          ? `Gap: <strong>${gap} min</strong> · Next safe time from ${baseTime}: <strong>${safeAt}</strong>`
+          : `Recommended gap: <strong>${gap} min</strong>`;
+
+        const div = document.createElement("div");
+        div.className = "item-result-row";
+        div.innerHTML = `
+          <div class="item-result-top">
+            <div>
+              <strong>${r.item_name_en}</strong>
+              ${r.item_name_hi ? `<span class="meta-muted">(${r.item_name_hi})</span>` : ""}
+              <span class="meta-muted"> · ${r.item_category || "Item"}</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+              <span class="risk-badge ${riskClass(r.risk_level)}">${r.risk_level}</span>
+              <button type="button" class="secondary-btn log-from-result-btn" style="padding: 5px 10px; font-size: 0.78rem;">
+                Log to Tracker
+              </button>
+            </div>
+          </div>
+          <div class="meta-muted" style="margin-bottom: 6px;">${timingLine}</div>
+          <div style="font-size: 0.92rem; line-height: 1.45;">${r.advice || ""}</div>
+        `;
+
+        div.querySelector(".log-from-result-btn").addEventListener("click", () => {
+          prefillTrackerFromResult(r.item_name_en, gap, lastCheckData.disease_name || "");
+        });
+
+        itemResultsList.appendChild(div);
+      });
+    }
+
+    function getFilteredLogs() {
+      const selectedDate = filterDateInput.value;
+      const kw = searchDiaryInput.value.trim().toLowerCase();
+
+      return allDiaryLogs.filter((l) => {
+        if (selectedDate && extractDayKey(l.created_at || l.date) !== selectedDate) {
+          return false;
+        }
+        if (kw) {
+          const hay = [
+            l.meal_note || l.food || l.item_name || "",
+            l.disease_name || "",
+            l.symptom || "",
+            l.severity || "",
+            l.notes || "",
+            l.intake_time || "",
+          ]
+            .join(" ")
+            .toLowerCase();
+          if (!hay.includes(kw)) return false;
+        }
+        return true;
+      });
+    }
+
+    function renderTrendsAndDayTables(logs) {
+      const visibleLogs = getFilteredLogs();
+      const hasActiveFilter = Boolean(filterDateInput.value || searchDiaryInput.value.trim());
+      const sourceLogs = hasActiveFilter ? visibleLogs : logs;
+
+      if (!logs || logs.length === 0) {
+        trendStats.innerHTML = `
+          <div class="stat-card"><div class="stat-label">Logged Items</div><div class="stat-val">0</div></div>
+          <div class="stat-card"><div class="stat-label">Symptom Rate</div><div class="stat-val">0%</div></div>
+          <div class="stat-card"><div class="stat-label">Avg Gap (Symptoms)</div><div class="stat-val">—</div></div>
+          <div class="stat-card"><div class="stat-label">Top Symptom</div><div class="stat-val">—</div></div>
+        `;
+        triggerPills.innerHTML = "";
+        trendInsight.textContent = "Log food and symptoms above to automatically generate trends and day-wise tables.";
+        diaryTablesContainer.innerHTML = "";
+        return;
+      }
+
+      const symptomCounts = {};
+      const pairStats = {};
+      let symptomEntriesCount = 0;
+      let gapSum = 0;
+      let gapCount = 0;
+      let shortGapSymptoms = 0;
+
+      sourceLogs.forEach((l) => {
+        const mealKey = (l.meal_note || l.food || l.item_name || "").trim();
+        const rawSym = (l.symptom || "").trim();
+        const cleanSym = rawSym.toLowerCase() === "none" ? "" : rawSym;
+        const sev = (l.severity || "None").toLowerCase();
+        const hasSymptom = Boolean(cleanSym) || (sev !== "none" && sev !== "");
+        const gapVal = Number(l.gap_minutes || 0);
+
+        if (gapVal > 0) {
+          gapSum += gapVal;
+          gapCount += 1;
+        }
+
+        if (hasSymptom) {
+          symptomEntriesCount += 1;
+          const symKey = cleanSym || `${l.severity} discomfort`;
+          symptomCounts[symKey] = (symptomCounts[symKey] || 0) + 1;
+          if (gapVal > 0 && gapVal < 30) {
+            shortGapSymptoms += 1;
+          }
+          if (mealKey) {
+            const pairKey = `${mealKey} -> ${symKey}`;
+            if (!pairStats[pairKey]) {
+              pairStats[pairKey] = { count: 0, isSevereOrMod: false, gaps: [] };
+            }
+            pairStats[pairKey].count += 1;
+            if (sev === "severe" || sev === "moderate") {
+              pairStats[pairKey].isSevereOrMod = true;
+            }
+            if (gapVal > 0) pairStats[pairKey].gaps.push(gapVal);
+          }
+        }
+      });
+
+      const topSymptom = Object.entries(symptomCounts).sort((a, b) => b[1] - a[1])[0];
+      const topPairs = Object.entries(pairStats)
+        .sort((a, b) => b[1].count - a[1].count)
+        .slice(0, 5);
+      const symRate = sourceLogs.length > 0 ? Math.round((symptomEntriesCount / sourceLogs.length) * 100) : 0;
+      const avgGapText = gapCount > 0 ? `${Math.round(gapSum / gapCount)} min` : "—";
+
+      trendStats.innerHTML = `
+        <div class="stat-card">
+          <div class="stat-label">Logged Items</div>
+          <div class="stat-val">${sourceLogs.length}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Symptom Rate</div>
+          <div class="stat-val">${symRate}% (${symptomEntriesCount}/${sourceLogs.length})</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Avg Logged Gap</div>
+          <div class="stat-val">${avgGapText}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Top Symptom</div>
+          <div class="stat-val">${topSymptom ? `${topSymptom[0]} (${topSymptom[1]}x)` : "None"}</div>
+        </div>
+      `;
+
+      triggerPills.innerHTML = topPairs
+        .map(([pair, st]) => {
+          const avgPairGap = st.gaps.length > 0 ? ` · avg ${Math.round(st.gaps.reduce((a, b) => a + b, 0) / st.gaps.length)}m` : "";
+          const cls = st.isSevereOrMod ? "trigger-pill high-trigger" : "trigger-pill";
+          return `<span class="${cls}">Trigger: ${pair} (${st.count}x${avgPairGap})</span>`;
+        })
+        .join("");
+
+      const notesParts = [];
+      if (topPairs.length > 0) {
+        notesParts.push(`Top trigger pair: "${topPairs[0][0]}" (${topPairs[0][1]}x)`);
+      }
+      if (shortGapSymptoms > 0) {
+        notesParts.push(`${shortGapSymptoms} symptom log(s) occurred with a gap under 30 min`);
+      }
+      if (hasActiveFilter) {
+        notesParts.push(`Showing ${visibleLogs.length} matching log(s)`);
+      }
+      trendInsight.textContent = notesParts.join(" · ") || "Patterns update automatically as more food and symptom entries are logged.";
+
+      const nowStr = new Date().toLocaleString();
+      const scopeParts = [];
+      if (filterDateInput.value) scopeParts.push(`Date: ${filterDateInput.value}`);
+      if (searchDiaryInput.value.trim()) scopeParts.push(`Search: "${searchDiaryInput.value.trim()}"`);
+      printMetaLine.textContent = `Printed on ${nowStr}${scopeParts.length ? " · " + scopeParts.join(" · ") : " · All dates"}`;
+
+      if (visibleLogs.length === 0) {
+        diaryTablesContainer.innerHTML = `<p class="meta-muted" style="margin-top: 14px;">No diary entries match the current filter.</p>`;
+        return;
+      }
+
+      const groupedByDay = {};
+      visibleLogs.forEach((l) => {
+        const dayKey = extractDayKey(l.created_at || l.date);
+        if (!groupedByDay[dayKey]) groupedByDay[dayKey] = [];
+        groupedByDay[dayKey].push(l);
+      });
+
+      diaryTablesContainer.innerHTML = "";
+      Object.entries(groupedByDay).forEach(([day, dayLogs]) => {
+        const block = document.createElement("div");
+        block.className = "day-block";
+
+        const rowsHtml = dayLogs
+          .map((log) => {
+            const gapMin = Number(log.gap_minutes || 0);
+            const safetyStatus = gapMin > 0 ? `${gapMin} min gap` : "Direct / Unspecified";
+            const mealLabel = log.meal_note || log.food || log.item_name || "—";
+            const logId = log.log_id ?? log.id ?? "";
+            return `
+              <tr>
+                <td>${log.intake_time || "—"}</td>
+                <td><strong>${mealLabel}</strong></td>
+                <td>${log.disease_name || "—"}</td>
+                <td>${safetyStatus}</td>
+                <td>${log.symptom || "None"}</td>
+                <td><span class="${severityPillClass(log.severity)}">${log.severity || "None"}</span></td>
+                <td>${log.notes || "—"}</td>
+                <td>${logId !== "" ? `<button class="danger-btn del-log-btn" data-id="${logId}" data-meal="${mealLabel.replaceAll('"', "&quot;")}" type="button">Delete</button>` : "—"}</td>
+              </tr>
+            `;
+          })
+          .join("");
+
+        block.innerHTML = `
+          <div class="day-header">
+            <span>${day}</span>
+            <span class="meta-muted">${dayLogs.length} item(s)</span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Time</th>
+                  <th>Food / Item</th>
+                  <th>Condition</th>
+                  <th>Gap / Safety</th>
+                  <th>Symptom</th>
+                  <th>Severity</th>
+                  <th>Context</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>${rowsHtml}</tbody>
+            </table>
+          </div>
+        `;
+
+        block.querySelectorAll(".del-log-btn").forEach((btn) => {
+          btn.addEventListener("click", async () => {
+            hideDiaryError();
+            const id = btn.getAttribute("data-id");
+            const meal = btn.getAttribute("data-meal") || "this entry";
+            if (!window.confirm(`Delete log entry for "${meal}"?`)) return;
+            try {
+                const token = localStorage.getItem("safebite_token") || "";
+          const headers = {};
+          if (token) headers["Authorization"] = `Bearer ${token}`;
+              const delRes = await fetch(`${API_BASE}/diary/${id}`, { 
+                method: "DELETE",
+                headers,
+            });
+              if (delRes.status === 401) {
+            throw new Error("Please login first (401 Unauthorized).");
+          }
+          if (!delRes.ok) {
+            throw new Error(`Delete failed with status ${delRes.status}`);
+          }
+              await loadDiary();
+            } catch (err) {
+              showDiaryError(err.message);
+            }
+          });
+        });
+
+        diaryTablesContainer.appendChild(block);
+      });
+    }
+
+    function exportLogsToCsv() {
+      const rowsToExport = getFilteredLogs();
+      if (!rowsToExport || rowsToExport.length === 0) {
+        showDiaryError("No diary rows available to export.");
+        return;
+      }
+      hideDiaryError();
+
+      const headers = ["Date", "Time", "Food / Item", "Condition", "Gap (min)", "Symptom", "Severity", "Context"];
+      const csvLines = [headers.join(",")];
+
+      rowsToExport.forEach((l) => {
+        const vals = [
+          extractDayKey(l.created_at || l.date),
+          l.intake_time || "",
+          l.meal_note || l.food || l.item_name || "",
+          l.disease_name || "",
+          Number(l.gap_minutes || 0),
+          l.symptom || "None",
+          l.severity || "None",
+          l.notes || "",
+        ].map((v) => `"${String(v).replaceAll('"', '""')}"`);
+        csvLines.push(vals.join(","));
+      });
+
+      const blob = new Blob([csvLines.join("\n")], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      const suffix = filterDateInput.value ? `_${filterDateInput.value}` : "";
+      a.href = url;
+      a.download = `safebite_diary${suffix}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    async function loadDiary() {
+      try {
+        const token = localStorage.getItem("safebite_token") || "";
+      const headers = {};
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+        const res = await fetch(`${API_BASE}/diary`, { headers });
+        if (res.status === 401) {
+          throw new Error("Please login first (401 Unauthorized).");
+        }
+        const data = await res.json();
+        allDiaryLogs = normalizeLogsResponse(data);
+        renderTrendsAndDayTables(allDiaryLogs);
+      } catch (err) {
+        diaryTablesContainer.innerHTML = `<p class="meta-muted" style="margin-top: 12px;">Could not load diary logs (${err.message}).</p>`;
+      }
+    }
+
+    async function runMultiCheck() {
+      hideError();
+      const diseaseId = selectedDisease ? selectedDisease.disease_id : null;
+      const fallbackItemId = activeItem ? activeItem.item_id : null;
+      const idsToCheck = selectedItemIds.length > 0 ? selectedItemIds : (fallbackItemId ? [fallbackItemId] : []);
+
+      if (!diseaseId || idsToCheck.length === 0) {
+        showError("Please choose a condition and at least one item.");
+        return;
+      }
+
+      checkBtn.disabled = true;
+      checkBtn.textContent = "Checking...";
+
+      try {
+        const res = await fetch(
+          `${API_BASE}/check-multi?disease_id=${diseaseId}&item_ids=${idsToCheck.join(",")}`
+        );
+        if (!res.ok) {
+          const errBody = await res.json().catch(() => ({}));
+          throw new Error(errBody.detail || "Could not check selected items.");
+        }
+        const data = await res.json();
+        lastCheckData = data;
+        activeRiskFilter = "all";
+        document.querySelectorAll(".risk-filter-btn").forEach((b) => {
+          b.classList.toggle("active-filter", b.getAttribute("data-risk") === "all");
+        });
+
+        const baseTime = intakeTimeInput.value || "";
+        const maxGap = Number(data.max_gap_minutes || 0);
+        const nextSafeOverall = baseTime ? addMinutesToTime(baseTime, maxGap) : null;
+
+        summaryTitle.textContent = `${data.disease_name} — ${data.count} item(s) checked`;
+        summaryClock.textContent = nextSafeOverall
+          ? `Max gap: ${maxGap} min · Next safe time from ${baseTime}: ${nextSafeOverall}`
+          : `Max recommended gap: ${maxGap} min`;
+
+        highestRiskBadge.className = `risk-badge ${riskClass(data.highest_risk)}`;
+        highestRiskBadge.textContent = `Highest: ${data.highest_risk}`;
+
+        renderFilteredResultRows();
+        disclaimerBox.textContent = data.disclaimer || "";
+        resultCard.style.display = "block";
+      } catch (err) {
+        showError(err.message);
+      } finally {
+        checkBtn.disabled = false;
+        checkBtn.textContent = "Check Interaction";
+      }
+    }
+
+    document.querySelectorAll(".risk-filter-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        activeRiskFilter = btn.getAttribute("data-risk") || "all";
+        document.querySelectorAll(".risk-filter-btn").forEach((b) => {
+          b.classList.toggle("active-filter", b === btn);
+        });
+        renderFilteredResultRows();
+      });
+    });
+
+    document.querySelectorAll(".sym-preset").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        diarySymptom.value = btn.getAttribute("data-sym") || "";
+        if (diarySeverity.value === "None") {
+          diarySeverity.value = "Mild";
+        }
+      });
+    });
+
+    diseaseInput.addEventListener("focus", () => {
+      const currentFormatted = selectedDisease ? formatDiseaseLabel(selectedDisease) : "";
+      renderDiseaseMenu(diseaseInput.value === currentFormatted ? "" : diseaseInput.value);
+      diseaseMenu.classList.add("open");
+    });
+
+    diseaseInput.addEventListener("input", () => {
+      selectedDisease = null;
+      renderDiseaseMenu(diseaseInput.value);
+      diseaseMenu.classList.add("open");
+    });
+
+    diseaseInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        const matches = getMatchingDiseases(diseaseInput.value);
+        if (matches.length > 0) {
+          selectedDisease = matches[0];
+          diseaseInput.value = formatDiseaseLabel(matches[0]);
+          diseaseMenu.classList.remove("open");
+        }
+      }
+    });
+
+    diseaseInput.addEventListener("blur", () => {
+      setTimeout(() => diseaseMenu.classList.remove("open"), 150);
+    });
+
+    itemInput.addEventListener("focus", () => {
+      const currentFormatted = activeItem ? formatItemLabel(activeItem) : "";
+      renderItemMenu(itemInput.value === currentFormatted ? "" : itemInput.value);
+      itemMenu.classList.add("open");
+    });
+
+    itemInput.addEventListener("input", () => {
+      activeItem = null;
+      renderItemMenu(itemInput.value);
+      itemMenu.classList.add("open");
+    });
+
+    itemInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        addCurrentOrFirstItem();
+      }
+    });
+
+    itemInput.addEventListener("blur", () => {
+      setTimeout(() => itemMenu.classList.remove("open"), 150);
+    });
+
+    addItemBtn.addEventListener("click", addCurrentOrFirstItem);
+
+    checkBtn.addEventListener("click", runMultiCheck);
+
+    resetBtn.addEventListener("click", () => {
+      diseaseInput.value = "";
+      itemInput.value = "";
+      intakeTimeInput.value = "";
+      selectedDisease = null;
+      activeItem = null;
+      selectedItemIds = [];
+      lastCheckData = null;
+      hideError();
+      hideDiaryError();
+      resultCard.style.display = "none";
+      renderChips();
+    });
+
+    saveDiaryBtn.addEventListener("click", async () => {
+      const mealText = diaryMeal.value.trim();
+      if (!mealText) {
+        showDiaryError("Please enter what food, beverage, or supplement you had.");
+        return;
+      }
+      hideDiaryError();
+
+      const payload = {
+        disease_id: selectedDisease ? Number(selectedDisease.disease_id) : null,
+        item_id: activeItem ? Number(activeItem.item_id) : null,
+        meal_note: mealText,
+        intake_time: diaryTime.value || "Not specified",
+        gap_minutes: Number(diaryGap.value || 0),
+        symptom: diarySymptom.value.trim(),
+        severity: diarySeverity.value,
+        notes: diaryMealSlot.value.trim(),
+      };
+
+      saveDiaryBtn.disabled = true;
+      saveDiaryBtn.textContent = "Saving...";
+
+      try {
+        const token = localStorage.getItem("safebite_token") || "";
+const headers = { "Content-Type": "application/json" };
+if (token) headers["Authorization"] = `Bearer ${token}`;
+        const res = await fetch(`${API_BASE}/diary`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify(payload),
+        });
+
+        const bodyText = await res.text();
+        let parsedBody = {};
+        try {
+          parsedBody = bodyText ? JSON.parse(bodyText) : {};
+        } catch (_) {
+          parsedBody = { raw: bodyText };
+        }
+
+        if (res.status === 401) {
+            showDiaryError("Please login first (401 Unauthorized).");
+            return;
+        }
+        if (!res.ok) {
+          const detailText =
+            typeof parsedBody.detail === "string"
+              ? parsedBody.detail
+              : Array.isArray(parsedBody.detail)
+                 ? parsedBody.detail.map((d) => `${(d.loc || []).join(".")}: ${d.msg}`).join("\n")
+                 : bodyText || `HTTP ${res.status}`;
+          showDiaryError(`Save failed (${res.status}):\n${detailText}`);
+          return;
+        }
+
+        diaryMeal.value = "";
+        diaryTime.value = "";
+        diaryGap.value = "";
+        diarySymptom.value = "";
+        diaryMealSlot.value = "";
+        diarySeverity.value = "None";
+
+        await loadDiary();
+      } catch (err) {
+        showDiaryError(`Network error while saving entry: ${err.message}. Verify FastAPI is running on ${API_BASE}.`);
+      } finally {
+        saveDiaryBtn.disabled = false;
+        saveDiaryBtn.textContent = "Log Entry";
+      }
+    });
+
+    refreshDiaryBtn.addEventListener("click", loadDiary);
+    filterDateInput.addEventListener("change", () => renderTrendsAndDayTables(allDiaryLogs));
+    searchDiaryInput.addEventListener("input", () => renderTrendsAndDayTables(allDiaryLogs));
+    clearFiltersBtn.addEventListener("click", () => {
+      filterDateInput.value = "";
+      searchDiaryInput.value = "";
+      renderTrendsAndDayTables(allDiaryLogs);
+    });
+    exportCsvBtn.addEventListener("click", exportLogsToCsv);
+    printReportBtn.addEventListener("click", () => window.print());
+
+    async function init() {
+      try {
+        const [dRes, iRes] = await Promise.all([
+          fetch(`${API_BASE}/diseases`),
+          fetch(`${API_BASE}/items?limit=500`),
+        ]);
+        if (!dRes.ok || !iRes.ok) throw new Error("API endpoints not ready");
+
+        apiStatus.textContent = "API Connected";
+        apiStatus.classList.add("online");
+
+        const dData = await dRes.json();
+        const iData = await iRes.json();
+
+        allDiseases = dData.diseases || [];
+        allItems = iData.items || [];
+
+        renderChips();
+        await loadDiary();
+      } catch (err) {
+        apiStatus.textContent = "API Offline";
+        apiStatus.classList.remove("online");
+        showError(`Cannot connect to FastAPI server at ${API_BASE}.`);
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>
