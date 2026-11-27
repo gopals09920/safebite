@@ -79,11 +79,6 @@ def get_connection():
         finally:
             conn.close()
 
-def _resolve_diseases_csv() -> Path:
-    primary = DATA_DIR / "diseases.csv"
-    fallback = DATA_DIR / "disease.csv"
-    return primary if primary.exists() else fallback
-
 
 def _clean_cell(val: str) -> str:
     return str(val).replace("\x00", "").strip()
@@ -212,165 +207,251 @@ def _read_rows(csv_path: Path) -> tuple[list[str], list[list[str]]]:
     return [], []
 
 
-def _load_diseases(cursor: sqlite3.Cursor, csv_path: Path, interactions_csv: Path) -> None:
+def _load_diseases_from_interactions(cursor: sqlite3.Cursor, interactions_csv: Path) -> None:
     if cursor.execute("SELECT COUNT(*) FROM diseases").fetchone()[0] > 0:
         return
-
-    cols, rows = _read_rows(csv_path)
-    col_map = {c: i for i, c in enumerate(cols)} if cols else {}
-    name_key = next((k for k in ("disease_name", "name", "disease", "condition") if k in col_map), None)
-
-    loaded_any = False
-    if name_key is not None and rows:
-        cat_key = next((k for k in ("category", "group", "type") if k in col_map), None)
-        notes_key = next((k for k in ("notes", "note", "description", "desc") if k in col_map), None)
-        id_key = next((k for k in ("disease_id", "id") if k in col_map), None)
-
-        for idx, r in enumerate(rows, start=1):
-            d_name = r[col_map[name_key]].strip()
-            if not d_name:
-                continue
-            d_id = _to_int_or_none(r[col_map[id_key]]) if id_key else idx
-            if d_id is None:
-                d_id = idx
-            d_cat = r[col_map[cat_key]].strip() if cat_key else None
-            d_notes = r[col_map[notes_key]].strip() if notes_key else None
-
-            cursor.execute(
-                """
-                INSERT OR IGNORE INTO diseases (disease_id, disease_name, category, notes)
-                VALUES (?, ?, ?, ?)
-                """,
-                (d_id, d_name, d_cat, d_notes),
-            )
-            loaded_any = True
-
-    # Fallback: agar diseases.csv corrupt/ZIP thi toh interactions.csv se unique diseases nikaalein
-    if not loaded_any and interactions_csv.exists():
-        i_cols, i_rows = _read_rows(interactions_csv)
-        i_map = {c: i for i, c in enumerate(i_cols)}
-        if "disease_id" in i_map:
-            seen_ids: set[int] = set()
-            for r in i_rows:
-                d_id = _to_int_or_none(r[i_map["disease_id"]])
-                if d_id is None or d_id in seen_ids:
-                    continue
-                seen_ids.add(d_id)
-                d_name = r[i_map["disease_name"]].strip() if "disease_name" in i_map else ""
-                if not d_name:
-                    d_name = f"Condition {d_id}"
-                cursor.execute(
-                    """
-                    INSERT OR IGNORE INTO diseases (disease_id, disease_name, category, notes)
-                    VALUES (?, ?, ?, ?)
-                    """,
-                    (d_id, d_name, "General", "Loaded from interactions data"),
-                )
-
-
-def _load_items(cursor: sqlite3.Cursor, csv_path: Path) -> None:
-    if cursor.execute("SELECT COUNT(*) FROM items").fetchone()[0] > 0:
-        return
-    cols, rows = _read_rows(csv_path)
-    if not cols or not rows:
+    if not interactions_csv.exists():
         return
 
-    col_map = {c: i for i, c in enumerate(cols)}
-    en_key = next(
-        (k for k in ("name_en", "name_english", "item_name", "name", "title") if k in col_map),
-        None,
-    )
-    if en_key is None:
+    i_cols, i_rows = _read_rows(interactions_csv)
+    if not i_cols or not i_rows:
         return
 
-    hi_key = next((k for k in ("name_hi", "name_hindi", "hindi_name", "hi") if k in col_map), None)
-    cat_key = next((k for k in ("category", "group", "type") if k in col_map), None)
-    id_key = next((k for k in ("item_id", "id") if k in col_map), None)
+    i_map = {c: i for i, c in enumerate(i_cols)}
+    d_name_key = next((k for k in ("disease_name", "disease", "condition") if k in i_map), None)
+    d_id_key = next((k for k in ("disease_id", "id") if k in i_map), None)
 
-    for idx, r in enumerate(rows, start=1):
-        name_en = r[col_map[en_key]].strip()
-        if not name_en:
+    if d_name_key is None and d_id_key is None:
+        return
+
+    seen_ids: set[int] = set()
+    seen_names: set[str] = set()
+    next_id = 1
+
+    for r in i_rows:
+        d_name = r[i_map[d_name_key]].strip() if d_name_key is not None else ""
+        parsed_id = _to_int_or_none(r[i_map[d_id_key]]) if d_id_key is not None else None
+
+        if not d_name and parsed_id is None:
             continue
-        i_id = _to_int_or_none(r[col_map[id_key]]) if id_key else idx
-        if i_id is None:
-            i_id = idx
-        name_hi = r[col_map[hi_key]].strip() if hi_key else None
-        cat = r[col_map[cat_key]].strip() if cat_key else None
+        if not d_name:
+            d_name = f"Condition {parsed_id}"
+
+        norm_name = d_name.lower()
+        if norm_name in seen_names:
+            continue
+
+        d_id = parsed_id if (parsed_id is not None and parsed_id not in seen_ids) else next_id
+        while d_id in seen_ids:
+            next_id += 1
+            d_id = next_id
+        if d_id >= next_id:
+            next_id = d_id + 1
+
+        seen_ids.add(d_id)
+        seen_names.add(norm_name)
 
         cursor.execute(
+            """
+            INSERT OR IGNORE INTO diseases (disease_id, disease_name, category, notes)
+            VALUES (?, ?, ?, ?)
+            """,
+            (d_id, d_name, "General", "Loaded from interactions.csv"),
+        )
+
+
+def _load_items_from_interactions(cursor: sqlite3.Cursor, csv_path: Path) -> None:
+    header, rows = _read_rows(csv_path)
+    if not header or not rows:
+        return
+
+    col_map = {name: idx for idx, name in enumerate(header)}
+    name_key = next(
+        (k for k in ("item_name", "name_en", "name_english", "food", "item", "name") if k in col_map),
+        None,
+    )
+    id_key = next((k for k in ("item_id", "id") if k in col_map), None)
+
+    if name_key is None and id_key is None:
+        return
+
+    seen_ids: set[int] = set()
+    seen_names: set[str] = set()
+    next_id = 1
+    items_to_insert: list[tuple[int, str, str | None, str | None]] = []
+
+    for r in rows:
+        raw_name = r[col_map[name_key]].strip() if name_key is not None else ""
+        if not raw_name:
+            continue
+
+        norm_name = raw_name.lower()
+        if norm_name in seen_names:
+            continue
+
+        item_id: int | None = None
+        if id_key is not None:
+            raw_id = r[col_map[id_key]].strip()
+            if raw_id.isdigit():
+                candidate_id = int(raw_id)
+                if candidate_id > 0 and candidate_id not in seen_ids:
+                    item_id = candidate_id
+
+        if item_id is None:
+            while next_id in seen_ids:
+                next_id += 1
+            item_id = next_id
+            next_id += 1
+
+        seen_ids.add(item_id)
+        seen_names.add(norm_name)
+        items_to_insert.append((item_id, raw_name, None, None))
+
+    if items_to_insert:
+        cursor.executemany(
             """
             INSERT OR IGNORE INTO items (item_id, name_en, name_hi, category)
             VALUES (?, ?, ?, ?)
             """,
-            (i_id, name_en, name_hi, cat),
+            items_to_insert,
+        )
+def _load_interactions(cursor: sqlite3.Cursor, csv_path: Path) -> None:
+    header, rows = _read_rows(csv_path)
+    if not header or not rows:
+        return
+
+    col_map = {name: idx for idx, name in enumerate(header)}
+
+    disease_name_key = next(
+        (k for k in ("disease_name", "disease", "condition", "name_disease") if k in col_map),
+        None,
+    )
+    disease_id_key = next((k for k in ("disease_id",) if k in col_map), None)
+
+    item_name_key = next(
+        (k for k in ("item_name", "name_en", "name_english", "food", "item", "name") if k in col_map),
+        None,
+    )
+    item_id_key = next((k for k in ("item_id",) if k in col_map), None)
+
+    risk_key = next((k for k in ("risk_level", "risk", "severity") if k in col_map), None)
+    gap_key = next(
+        (k for k in ("gap_minutes", "timing_gap_minutes", "timing_gap", "gap") if k in col_map),
+        None,
+    )
+    advice_key = next(
+        (k for k in ("advice", "guidance", "recommendation", "notes") if k in col_map),
+        None,
+    )
+    source_key = next((k for k in ("source", "reference") if k in col_map), None)
+    id_key = next((k for k in ("interaction_id", "id") if k in col_map), None)
+
+    disease_by_name = {
+        row[1].strip().lower(): int(row[0])
+        for row in cursor.execute("SELECT disease_id, disease_name FROM diseases").fetchall()
+        if row[1]
+    }
+    disease_ids = {
+        int(row[0])
+        for row in cursor.execute("SELECT disease_id FROM diseases").fetchall()
+    }
+
+    item_by_name = {
+        row[1].strip().lower(): int(row[0])
+        for row in cursor.execute("SELECT item_id, name_en FROM items").fetchall()
+        if row[1]
+    }
+    item_ids = {
+        int(row[0])
+        for row in cursor.execute("SELECT item_id FROM items").fetchall()
+    }
+
+    existing_ids = {
+        int(row[0])
+        for row in cursor.execute("SELECT interaction_id FROM interactions").fetchall()
+    }
+    next_id = 1
+    records: list[tuple] = []
+
+    for r in rows:
+        d_name = r[col_map[disease_name_key]].strip() if disease_name_key is not None else ""
+        d_id: int | None = None
+        if disease_id_key is not None:
+            raw_did = r[col_map[disease_id_key]].strip()
+            if raw_did.isdigit() and int(raw_did) in disease_ids:
+                d_id = int(raw_did)
+        if d_id is None and d_name:
+            d_id = disease_by_name.get(d_name.lower())
+        if d_id is None:
+            continue
+        if not d_name:
+            d_name = str(d_id)
+
+        i_name = r[col_map[item_name_key]].strip() if item_name_key is not None else ""
+        i_id: int | None = None
+        if item_id_key is not None:
+            raw_iid = r[col_map[item_id_key]].strip()
+            if raw_iid.isdigit() and int(raw_iid) in item_ids:
+                i_id = int(raw_iid)
+        if i_id is None and i_name:
+            i_id = item_by_name.get(i_name.lower())
+        if i_id is None:
+            continue
+        if not i_name:
+            i_name = str(i_id)
+
+        risk_level = (
+            r[col_map[risk_key]].strip() if risk_key is not None and r[col_map[risk_key]].strip() else "Moderate"
         )
 
+        gap_minutes = 0
+        if gap_key is not None:
+            raw_gap = r[col_map[gap_key]].strip()
+            try:
+                gap_minutes = int(float(raw_gap))
+            except ValueError:
+                gap_minutes = 0
 
-def _load_interactions(cursor: sqlite3.Cursor, csv_path: Path) -> None:
-    if cursor.execute("SELECT COUNT(*) FROM interactions").fetchone()[0] > 0:
-        return
-    cols, rows = _read_rows(csv_path)
-    if not cols or not rows:
-        return
+        advice = (
+            r[col_map[advice_key]].strip()
+            if advice_key is not None and r[col_map[advice_key]].strip()
+            else "Consult a healthcare professional before combining."
+        )
+        source = (
+            r[col_map[source_key]].strip()
+            if source_key is not None and r[col_map[source_key]].strip()
+            else "interactions.csv"
+        )
 
-    col_map = {c: i for i, c in enumerate(cols)}
-    d_id_key = next((k for k in ("disease_id",) if k in col_map), None)
-    i_id_key = next((k for k in ("item_id",) if k in col_map), None)
-    if d_id_key is None or i_id_key is None:
-        return
+        inter_id: int | None = None
+        if id_key is not None:
+            raw_id = r[col_map[id_key]].strip()
+            if raw_id.isdigit() and int(raw_id) > 0 and int(raw_id) not in existing_ids:
+                inter_id = int(raw_id)
 
-    int_id_key = next((k for k in ("interaction_id", "id") if k in col_map), None)
-    d_name_key = next((k for k in ("disease_name", "disease") if k in col_map), None)
-    i_name_key = next((k for k in ("item_name", "name_en", "name_english", "item") if k in col_map), None)
-    risk_key = next((k for k in ("risk_level", "risk", "severity") if k in col_map), None)
-    gap_key = next((k for k in ("gap_minutes", "gap_min", "gap", "timing_gap_minutes") if k in col_map), None)
-    advice_key = next((k for k in ("advice", "guidance", "recommendation", "notes") if k in col_map), None)
-    source_key = next((k for k in ("source", "reference", "evidence") if k in col_map), None)
+        if inter_id is None:
+            while next_id in existing_ids:
+                next_id += 1
+            inter_id = next_id
+            next_id += 1
 
-    d_lookup = {
-        int(r["disease_id"]): r["disease_name"]
-        for r in cursor.execute("SELECT disease_id, disease_name FROM diseases").fetchall()
-    }
-    i_lookup = {
-        int(r["item_id"]): r["name_en"]
-        for r in cursor.execute("SELECT item_id, name_en FROM items").fetchall()
-    }
+        existing_ids.add(inter_id)
+        records.append(
+            (inter_id, d_id, d_name, i_id, i_name, risk_level, gap_minutes, advice, source)
+        )
 
-    batch = []
-    for idx, r in enumerate(rows, start=1):
-        d_id = _to_int_or_none(r[col_map[d_id_key]])
-        i_id = _to_int_or_none(r[col_map[i_id_key]])
-        if d_id is None or i_id is None:
-            continue
-
-        int_id = _to_int_or_none(r[col_map[int_id_key]]) if int_id_key else idx
-        if int_id is None:
-            int_id = idx
-
-        d_name = (r[col_map[d_name_key]].strip() if d_name_key else "") or d_lookup.get(d_id, f"Disease {d_id}")
-        i_name = (r[col_map[i_name_key]].strip() if i_name_key else "") or i_lookup.get(i_id, f"Item {i_id}")
-        risk_level = (r[col_map[risk_key]].strip() if risk_key else "") or "Moderate"
-        gap_val = _to_int_or_none(r[col_map[gap_key]]) if gap_key else 0
-        gap_minutes = gap_val if gap_val is not None else 0
-        advice = (r[col_map[advice_key]].strip() if advice_key else "") or "Consult a healthcare professional for personalized timing guidance."
-        source = r[col_map[source_key]].strip() if source_key else None
-
-        batch.append((int_id, d_id, d_name, i_id, i_name, risk_level, gap_minutes, advice, source))
-
-    if batch:
+    if records:
         cursor.executemany(
             """
-            INSERT OR IGNORE INTO interactions
-            (interaction_id, disease_id, disease_name, item_id, item_name, risk_level, gap_minutes, advice, source)
+            INSERT OR IGNORE INTO interactions (
+                interaction_id, disease_id, disease_name, item_id, item_name,
+                risk_level, gap_minutes, advice, source
+            )
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            batch,
+            records,
         )
-
-
 def init_db() -> None:
-    diseases_csv = _resolve_diseases_csv()
-    items_csv = DATA_DIR / "items-v3.csv"
     interactions_csv = DATA_DIR / "interactions.csv"
 
     with get_connection() as conn:
@@ -451,8 +532,8 @@ def init_db() -> None:
             ON interactions (disease_id, item_id);
         """)
 
-        _load_diseases(cursor, diseases_csv, interactions_csv)
-        _load_items(cursor, items_csv)
+        _load_diseases_from_interactions(cursor, interactions_csv)
+        _load_items_from_interactions(cursor, interactions_csv)
         _load_interactions(cursor, interactions_csv)
 
         cursor.execute("PRAGMA foreign_keys = ON;")
